@@ -1,17 +1,17 @@
-import os
-from uuid import uuid4
-from datetime import datetime
-
 from flask import (
     Blueprint,
-    jsonify,
     request,
-    current_app
+    jsonify
 )
 
-from werkzeug.utils import secure_filename
+from app.services.business_card_service import (
+    save_business_card
+)
 
-from app.extensions import db
+from app.utils.responses import (
+    success_response,
+    error_response
+)
 
 
 business_card_bp = Blueprint(
@@ -20,108 +20,70 @@ business_card_bp = Blueprint(
 )
 
 
-ALLOWED_EXTENSIONS = {
-    "png",
-    "jpg",
-    "jpeg",
-    "webp"
-}
-
-
-def allowed(filename):
-
-    return (
-        "." in filename
-        and
-        filename.rsplit(".", 1)[1].lower()
-        in ALLOWED_EXTENSIONS
-    )
-
-
 @business_card_bp.route(
-    "/api/save_businesscard",
+    "/save_businesscard",
     methods=["POST"]
 )
-def save_businesscard():
+def upload_business_card():
 
-    if "business_card" not in request.files:
+    try:
 
-        return jsonify({
-            "error": "No image uploaded."
-        }), 400
+        # Get image
+        image = request.files.get(
+            "business_card"
+        )
 
-    image = request.files["business_card"]
 
-    name = request.form.get(
-        "name",
-        ""
-    ).strip()
+        # Get user information
+        name = request.form.get(
+            "name"
+        )
 
-    title = request.form.get(
-        "title",
-        ""
-    ).strip()
+        title = request.form.get(
+            "title"
+        )
 
-    if not name:
 
-        return jsonify({
-            "error": "Missing name."
-        }), 400
+        if image is None:
 
-    if not title:
+            return error_response(
+                "Business card image is required.",
+                400
+            )
 
-        return jsonify({
-            "error": "Missing title."
-        }), 400
 
-    if image.filename == "":
+        if not name:
 
-        return jsonify({
-            "error": "No file selected."
-        }), 400
+            return error_response(
+                "Name is required.",
+                400
+            )
 
-    if not allowed(image.filename):
 
-        return jsonify({
-            "error": "Unsupported file type."
-        }), 400
+        if not title:
 
-    extension = image.filename.rsplit(
-        ".",
-        1
-    )[1].lower()
+            return error_response(
+                "Title is required.",
+                400
+            )
 
-    filename = (
-        f"{uuid4()}.{extension}"
-    )
 
-    filename = secure_filename(
-        filename
-    )
+        result = save_business_card(
+            image=image,
+            name=name,
+            title=title
+        )
 
-    filepath = os.path.join(
-        current_app.config[
-            "UPLOAD_FOLDER"
-        ],
-        filename
-    )
 
-    image.save(filepath)
+        return success_response(
+            data=result,
+            status_code=201
+        )
 
-    document = {
-        "name": name,
-        "title": title,
-        "image_filename": filename,
-        "image_path": filepath,
-        "created_at": datetime.utcnow()
-    }
 
-    result = db.visitors.insert_one(
-        document
-    )
+    except Exception as error:
 
-    return jsonify({
-        "success": True,
-        "id": str(result.inserted_id),
-        "filename": filename,
-    }), 201
+        return error_response(
+            str(error),
+            500
+        )

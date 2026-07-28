@@ -1,52 +1,146 @@
 "use client";
 
+
 import { useState } from "react";
-import WelcomeForm from "@/components/WelcomeForm";
-import BusinessCardCapture from "@/components/BusinessCardCapture";
 
-export interface Person {
-  name: string;
-  title: string;
-}
 
-export default function Home() {
-  const [step, setStep] = useState<number>(1);
+import { useRouter } from "next/navigation";
 
-  const [person, setPerson] = useState<Person>({
-    name: "",
-    title: "",
-  });
 
-  const [cardImage, setCardImage] = useState<File | null>(null);
+export default function Home(){
 
-  const handleContinue = (personData: Person) => {
-    setPerson(personData);
-    setStep(2);
-  };
+  const router = useRouter();
+  const [name,setName] = useState("");
+  const [title,setTitle] = useState("");
 
-  const handleUpload = (file: File) => {
-    setCardImage(file);
+  function continueNext(){
 
-    console.log(person);
-    console.log(file);
+    if(!name || !title){
+      alert(
+      "Please enter name and title"
+      );
+      return;
+    }
 
-    alert("Business card uploaded!");
-  };
+    sessionStorage.setItem(
+      "name",
+      name
+    );
+
+    sessionStorage.setItem(
+      "title",
+      title
+    );
+
+    router.push(
+      "/capture"
+    );
+
+  }
+
+
 
   return (
-    <main className="container">
-      {step === 1 && (
-        <WelcomeForm
-          onContinue={handleContinue}
-        />
-      )}
+    <main
+      className="
+      min-h-screen
+      flex
+      items-center
+      justify-center
+      bg-gray-100
+      "
+    >
 
-      {step === 2 && (
-        <BusinessCardCapture
-          person={person}
-          onUpload={handleUpload}
+      <div
+        className="
+        w-full
+        max-w-md
+        rounded-2xl
+        bg-white
+        p-10
+        shadow-xl
+        "
+      >
+
+        <h1
+          className="
+          text-3xl
+          font-bold
+          text-center
+          mb-3
+          "
+        >
+          My Business Cards
+        </h1>
+
+        <p
+          className="
+          text-gray-500
+          text-center
+          mb-8
+          "
+        >
+          Enter your information
+        </p>
+
+        <input
+          className="
+            w-full
+            rounded-lg
+            border
+            border-gray-300
+            p-3
+            mb-4
+            focus:outline-none
+            focus:ring-2
+            focus:ring-black
+          "
+          placeholder="Full name"
+          value={name}
+          onChange={(e)=>
+            setName(e.target.value)
+          }
         />
-      )}
-    </main>
+
+        <input
+          className="
+            w-full
+            rounded-lg
+            border
+            border-gray-300
+            p-3
+            mb-6
+            focus:outline-none
+            focus:ring-2
+            focus:ring-black
+          "
+
+          placeholder="Job title"
+          value={title}
+
+          onChange={(e)=>
+            setTitle(e.target.value)
+          }
+        />
+
+          <button
+            onClick={continueNext}
+            className="
+            w-full
+            rounded-lg
+            bg-black
+            py-3
+            text-white
+            font-semibold
+            hover:bg-gray-800
+            transition
+            "
+          >
+            Continue
+          </button>
+
+        </div>
+      </main>
   );
+
 }
