@@ -7,67 +7,71 @@ import {
 } from "react";
 
 
-import ImageCropper
-from "./ImageCropper";
+import ImageCropper from "./ImageCropper";
 
 
 export default function BusinessCardCamera() {
 
-  const videoRef =
-    useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [photo, setPhoto] =
-    useState<string | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+
+  const [cameraStarted, setCameraStarted] = useState(false);
 
   async function startCamera() {
-
-    const stream =
-      await navigator.mediaDevices.getUserMedia({
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "environment"
-        }
+          facingMode: "environment",
+        },
+        audio: false,
       });
 
-    if (videoRef.current) {
+      if (!videoRef.current) return;
+
       videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+
+      videoRef.current.onloadedmetadata = async () => {
+        await videoRef.current?.play();
+      };
+
+      setCameraStarted(true);
+    } catch (err) {
+      console.error(err);
+      alert("Unable to access camera.");
     }
-
   }
 
-  function takePhoto() {
+  function capturePhoto() {
+    if (!videoRef.current) return;
 
-    const video =
-      videoRef.current!;
+    const video = videoRef.current;
 
-    const canvas =
-      document.createElement(
-        "canvas"
-      );
+    const canvas = document.createElement("canvas");
 
-    canvas.width =
-      video.videoWidth;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    canvas.height =
-      video.videoHeight;
+    const ctx = canvas.getContext("2d");
 
-    canvas
-      .getContext("2d")
-      ?.drawImage(
-        video,
-        0,
-        0
-      );
+    if (!ctx) return;
 
-    setPhoto(
-      canvas.toDataURL(
-        "image/jpeg"
-      )
-    );
+    ctx.drawImage(video, 0, 0);
 
+    const image = canvas.toDataURL("image/jpeg", 1);
+
+    setPhoto(image);
+
+    const stream = video.srcObject as MediaStream;
+
+    stream?.getTracks().forEach((track) => track.stop());
   }
 
-
+  function retakePhoto() {
+    setPhoto(null);
+    setCameraStarted(false);
+    startCamera();
+  }
 
   return (
 
@@ -141,7 +145,7 @@ export default function BusinessCardCamera() {
 
 
         <button
-          onClick={takePhoto}
+          onClick={capturePhoto}
           className="
             rounded-lg
             bg-black
@@ -162,6 +166,7 @@ export default function BusinessCardCamera() {
 
         <ImageCropper
           image={photo}
+          onRetake={retakePhoto}
         />
       }
 
